@@ -28,26 +28,39 @@ var Place = function(data) {
 	this.longitude = ko.observable(data.longitude);
 	this.marker = '';
 
-	this.removePlace = function(){
-		viewModel.places.remove(this);
+	this.removePlace = function() {
+		//viewModel.places.remove(this);
 		this.marker.setMap(null);
+	}
+
+	this.bounce = function() {
+		this.marker.setAnimation(google.maps.Animation.BOUNCE);
+		var _this = this;
+		setTimeout(function(){
+			_this.marker.setAnimation(null);
+		}, 1400);
 	}
 }
 
 var ViewModel = function() {
 	var self = this;
 	self.places = ko.observableArray([]);
+
+	// initilize the list of places
 	initialPlaces.forEach(function(placeItem){
 		self.places.push(new Place(placeItem));
 	});
 
+	// map binding
 	ko.bindingHandlers.map = {
 	    init: function (element, valueAccessor, allBindingsAccessor, viewModel) {
 	    	var bounds = new google.maps.LatLngBounds();
 		    var options = {
-			        mapTypeId: 'roadmap'
+			        mapTypeId: 'roadmap',
+			        disableDefaultUI: true
 			};
 			var infowindow = new google.maps.InfoWindow();
+
 			// display the map on the page
 			self.map = new google.maps.Map($('#map')[0], options);
 			self.map.setTilt(45);
@@ -62,6 +75,7 @@ var ViewModel = function() {
 					map: self.map,
 					title: self.places()[placeItem].name()
 				});
+
 				// display the info window when marker is clicked
 				google.maps.event.addListener(marker, 'click', function() {
 					infowindow.setContent(this.title);
@@ -78,12 +92,29 @@ var ViewModel = function() {
 		        this.setZoom(13);
 		        google.maps.event.removeListener(boundsListener);
 		    });
-
 	    },
 	    update: function (element, valueAccessor, allBindingsAccessor, viewModel) {
 
 	  	}
 	};
+
+	ko.bindingHandlers.hidden = {
+	    update: function (element, valueAccessor) {
+	        var value = ko.utils.unwrapObservable(valueAccessor());
+	        ko.bindingHandlers.visible.update(element, function () {
+	        	return !value;
+	        });
+	    }
+	};
+
+	// filter list of places when typing in the search box
+	$("#search-term").on("keyup", function() {
+	    var term = $(this).val().toLowerCase();
+	    $("li").each(function() {
+	        var value = $(this).text().toLowerCase();
+	        $(this).closest('li')[ value.indexOf(term) !== -1 ? 'show' : 'hide' ]();
+	    });
+	});
 }
 
 var viewModel = new ViewModel();
@@ -92,51 +123,4 @@ $(document).ready(function () {
    ko.applyBindings(viewModel);
 });
 
-// function init_map() {
-// 	var var_location = new google.maps.LatLng(45.430817,12.331516);
-//     var var_mapoptions = {
-//       center: var_location,
-//       zoom: 14
-//     };
-// 	var var_marker = new google.maps.Marker({
-// 		position: var_location,
-// 		map: var_map,
-// 		animation:google.maps.Animation.BOUNCE,
-// 		title:"Venice"
-// 	});
 
-//     var var_map = new google.maps.Map(document.getElementById("map-canvas"),
-//         var_mapoptions);
-
-// 	var_marker.setMap(var_map);
-
-// 	setTimeout(function() {
-//         var_marker.setAnimation(null)
-//     }, 1550);
-
-// 	var infowindow = new google.maps.InfoWindow({
-//   		content:"Hello World!"
-//   	});
-
-// 	google.maps.event.addListener(var_marker,'click',function() {
-// 	  infowindow.open(var_map, var_marker);
-// 	 });
-
-// 	google.maps.event.addListener(var_map, 'click', function(event) {
-// 	  placeMarker(event.latLng);
-// 	 });
-
-// 	function placeMarker(location) {
-// 	  var marker = new google.maps.Marker({
-// 	    position: location,
-// 	    map: var_map,
-// 	  });
-// 	  var infowindow = new google.maps.InfoWindow({
-// 	    content: 'Latitude: ' + location.lat() +
-// 	    '<br>Longitude: ' + location.lng()
-// 	  });
-// 	  infowindow.open(var_map,marker);
-// 	}
-// }
-
-// google.maps.event.addDomListener(window, 'load', init_map);

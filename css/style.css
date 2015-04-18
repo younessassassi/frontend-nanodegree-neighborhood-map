@@ -1,5 +1,31 @@
-#map {
-	height: 400px;
+html {
+	height: 100%;
+}
+
+body {
 	margin: 0;
+}
+
+.back {
+	height: 100%;
+	width: 100%;
 	padding: 0;
+}
+
+.front {
+	height: 200px;
+	position: absolute;
+	top: 30px;
+	right: 20px;
+	left: 20px;
+}
+
+#map {
+	height: 600px;
+	width: 100%;
+}
+
+.search-results {
+	padding-left: 0;
+	padding-right: 39px;
 }
