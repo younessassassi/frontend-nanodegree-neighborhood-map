@@ -28,9 +28,12 @@ var Place = function(data) {
 	this.longitude = ko.observable(data.longitude);
 	this.marker = '';
 
-	this.removePlace = function() {
-		//viewModel.places.remove(this);
-		this.marker.setMap(null);
+	this.hidePlace = function() {
+		this.marker.setVisible(false);
+	}
+
+	this.showPlace = function() {
+		this.marker.setVisible(true);
 	}
 
 	this.bounce = function() {
@@ -92,24 +95,34 @@ var ViewModel = function() {
 		        this.setZoom(13);
 		        google.maps.event.removeListener(boundsListener);
 		    });
-	    },
-	    update: function (element, valueAccessor, allBindingsAccessor, viewModel) {
-
-	  	}
-	};
-
-	ko.bindingHandlers.hidden = {
-	    update: function (element, valueAccessor) {
-	        var value = ko.utils.unwrapObservable(valueAccessor());
-	        ko.bindingHandlers.visible.update(element, function () {
-	        	return !value;
-	        });
 	    }
 	};
+
+	// ko.bindingHandlers.isHidden = {
+	// 	init: function(element, valueAccessor) {
+	// 		$(element).is(':visible')
+	// 	}
+	//     update: function (element, valueAccessor) {
+	//         var value = ko.utils.unwrapObservable(valueAccessor());
+	//         if (value == true) {
+	//         	bindingContext.$data.removePlace;
+	//         }
+	//     }
+	// };
 
 	// filter list of places when typing in the search box
 	$("#search-term").on("keyup", function() {
 	    var term = $(this).val().toLowerCase();
+
+	    $.each(self.places(), function(index, placeItem) {
+	    	var value = placeItem.name().toLowerCase();
+	    	if (value.indexOf(term) === -1) {
+	    		placeItem.hidePlace();
+	    	} else {
+	    		placeItem.showPlace();
+	    	}
+	    });
+
 	    $("li").each(function() {
 	        var value = $(this).text().toLowerCase();
 	        $(this).closest('li')[ value.indexOf(term) !== -1 ? 'show' : 'hide' ]();
