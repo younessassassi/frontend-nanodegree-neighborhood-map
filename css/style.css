@@ -12,12 +12,21 @@ body {
 	padding: 0;
 }
 
-.front {
+.top {
 	height: 200px;
 	position: absolute;
 	top: 30px;
 	right: 20px;
 	left: 20px;
+}
+
+.bottom {
+	height: 200px;
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	left: 0;
+	background-color: white;
 }
 
 #map {

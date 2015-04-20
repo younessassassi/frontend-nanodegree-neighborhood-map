@@ -18,7 +18,7 @@
 			</div>
 		</div>
 	</div>
-	<div class="container front">
+	<div class="container top">
 		<div class="row">
 			<div class="input-group col-sm-8 col-sm-offset-2 col-md-6 col-md-offset-3">
 				<input type="text" class="search-query form-control" placeholder="Search" id="search-term">
@@ -32,10 +32,25 @@
 		<div class="row">
 			<div class="col-sm-8 col-sm-offset-2 col-md-6 col-md-offset-3 search-results">
 				<ul data-bind="foreach: places" class="list-group">
-					<li class="list-group-item" data-bind="click: $data.bounce">
+					<li class="list-group-item" data-bind="click: $data.activateMarker, visible: showListItem">
 						<span data-bind="text: $data.name"></span>
 					</li>
 			    </ul>
+			</div>
+		</div>
+	</div>
+
+	<div class="container bottom">
+		<div class="row">
+			<div class="col-xs-12">
+				<h3 id="nyTimes-header">Relevant New York Times Links</h3>
+				<ul id="nytimesArticles">
+
+				</ul>
+				<h3 id="wikipedia-header">Relevant Wikipedia Links</h3>
+				<ul id="wikipediaArticles">
+
+				</ul>
 			</div>
 		</div>
 	</div>

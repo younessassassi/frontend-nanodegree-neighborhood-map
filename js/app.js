@@ -27,27 +27,80 @@ var Place = function(data) {
 	this.latitude = ko.observable(data.latitude);
 	this.longitude = ko.observable(data.longitude);
 	this.marker = '';
+	this.showListItem = ko.observable(true); // list  item initially visible
 
-	this.hidePlace = function() {
+	this.hidePlaceMarker = function() {
 		this.marker.setVisible(false);
 	}
 
-	this.showPlace = function() {
+	this.showPlaceMarker = function() {
 		this.marker.setVisible(true);
 	}
 
-	this.bounce = function() {
+	this.bouncePlaceMarker = function() {
 		this.marker.setAnimation(google.maps.Animation.BOUNCE);
 		var _this = this;
 		setTimeout(function(){
 			_this.marker.setAnimation(null);
 		}, 1400);
 	}
+
+	this.activateMarker = function() {
+		this.bouncePlaceMarker();
+		this.getNewYorkTimesData();
+		this.getWikipediaData();
+	}
+
+	var $wikiElem = $('#wikipediaArticles');
+    var $nytElem = $('#nytimesArticles');
+    var $nytHeaderElem = $('#nyTimes-header');
+
+	this.getNewYorkTimesData = function() {
+		var nytimesAPIKey = 'e1d4a459b4b1f9239fd618037ddf86df:11:61795967';
+	    var nyTimesURL = 'http://api.nytimes.com/svc/search/v2/articlesearch.json?q=' + this.name() + '&sort=newest&api-key=' + nytimesAPIKey;
+	    $.getJSON(nyTimesURL, function(data) {
+	        var articles = data.response.docs;
+	        for (var i = 0; i < articles.length; i++) {
+	            var article = articles[i];
+	            $nytElem.append('<li class="article">' +
+	            '<a href="'+ article.web_url + '">' + article.headline.main +'</a>' +
+	            '<p>' + article.snippet + '</p>' +
+	            '</li>');
+	        }
+	    }).error(function(e){
+	        $nytHeaderElem.text('New York Times Articles could not be loaded');
+	    });
+	}
+
+	this.getWikipediaData = function() {
+		var wikiURL = 'http://en.wikipedia.org/w/api.php?action=opensearch&search=' + this.name() +
+	    '&format=json&callback=wikiCallback';
+	    var wikiRequestTimeout = setTimeout(function(){
+	        $wikiElem.text("Failed to get wikipedia resources");
+	    }, 8000)
+
+	    $.ajax({
+	        url: wikiURL,
+	        dataType: "jsonp",
+	        success: function( response ) {
+	            var articleList = response[1];
+	            for (var i = 0; i < articleList.length; i++) {
+	                articleStr = articleList[i];
+	                var url = 'http://en.wikipedia.org/wiki/' + articleStr;
+	                $wikiElem.append('<li><a href="' + url + '">' +
+	                    articleStr + '</a></li>');
+	            }
+	            clearTimeout(wikiRequestTimeout);
+	        }
+	    });
+	}
+
 }
 
 var ViewModel = function() {
 	var self = this;
 	self.places = ko.observableArray([]);
+	var infowindow = null;
 
 	// initilize the list of places
 	initialPlaces.forEach(function(placeItem){
@@ -62,7 +115,7 @@ var ViewModel = function() {
 			        mapTypeId: 'roadmap',
 			        disableDefaultUI: true
 			};
-			var infowindow = new google.maps.InfoWindow();
+			infowindow = new google.maps.InfoWindow();
 
 			// display the map on the page
 			self.map = new google.maps.Map($('#map')[0], options);
@@ -98,36 +151,23 @@ var ViewModel = function() {
 	    }
 	};
 
-	// ko.bindingHandlers.isHidden = {
-	// 	init: function(element, valueAccessor) {
-	// 		$(element).is(':visible')
-	// 	}
-	//     update: function (element, valueAccessor) {
-	//         var value = ko.utils.unwrapObservable(valueAccessor());
-	//         if (value == true) {
-	//         	bindingContext.$data.removePlace;
-	//         }
-	//     }
-	// };
-
 	// filter list of places when typing in the search box
 	$("#search-term").on("keyup", function() {
 	    var term = $(this).val().toLowerCase();
-
+	    infowindow.close();
 	    $.each(self.places(), function(index, placeItem) {
 	    	var value = placeItem.name().toLowerCase();
 	    	if (value.indexOf(term) === -1) {
-	    		placeItem.hidePlace();
+	    		placeItem.hidePlaceMarker();
+	    		placeItem.showListItem(false);
 	    	} else {
-	    		placeItem.showPlace();
+	    		placeItem.showPlaceMarker();
+	    		placeItem.showListItem(true);
 	    	}
 	    });
-
-	    $("li").each(function() {
-	        var value = $(this).text().toLowerCase();
-	        $(this).closest('li')[ value.indexOf(term) !== -1 ? 'show' : 'hide' ]();
-	    });
 	});
+
+	//$('#search-term').submit(self.getNewYorkTimesData());
 }
 
 var viewModel = new ViewModel();
