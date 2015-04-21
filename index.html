@@ -32,24 +32,29 @@
 		<div class="row">
 			<div class="col-sm-8 col-sm-offset-2 col-md-6 col-md-offset-3 search-results">
 				<ul data-bind="foreach: places" class="list-group">
-					<li class="list-group-item" data-bind="click: $data.activateMarker, visible: showListItem">
+					<li class="list-group-item" data-bind="click: function() { $parent.openDataWindow(true); $data.activateMarker();}, visible: showListItem">
 						<span data-bind="text: $data.name"></span>
 					</li>
 			    </ul>
 			</div>
 		</div>
 	</div>
-
-	<div class="container bottom">
+	<div class="container bottom" data-bind="visible: isDataWindowOpen">
 		<div class="row">
-			<div class="col-xs-12">
-				<h3 id="nyTimes-header">Relevant New York Times Links</h3>
-				<ul id="nytimesArticles">
-
-				</ul>
-				<h3 id="wikipedia-header">Relevant Wikipedia Links</h3>
+			<button class="close" type="button" data-bind="click: openDataWindow(false)">
+				<span class="glyphicon glyphicon-remove close-data-window"></span>
+			</button>
+		</div>
+				<!-- <button type="button" class="btn btn-primary">close</button> -->
+		<div class="row">
+			<div class="col-xs-12 col-sm-6">
+				<h5 id="wikipedia-header">Relevant Wikipedia Links</h5>
 				<ul id="wikipediaArticles">
-
+				</ul>
+			</div>
+			<div class="col-xs-12 col-sm-6">
+				<h5 id="nyTimes-header">Relevant New York Times Links</h5>
+				<ul id="nytimesArticles">
 				</ul>
 			</div>
 		</div>

@@ -13,7 +13,7 @@ body {
 }
 
 .top {
-	height: 200px;
+	height: auto;
 	position: absolute;
 	top: 30px;
 	right: 20px;
@@ -27,6 +27,11 @@ body {
 	right: 0;
 	left: 0;
 	background-color: white;
+	overflow: auto;
+}
+
+.close-data-window {
+	padding: 4px;
 }
 
 #map {

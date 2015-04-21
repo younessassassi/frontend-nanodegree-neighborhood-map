@@ -1,8 +1,12 @@
 var map;
+var infowindow = null;
+var $wikiElem = $('#wikipediaArticles');
+var $nytElem = $('#nytimesArticles');
+var $nytHeaderElem = $('#nyTimes-header');
 
 var initialPlaces = [
 	{
-		name: 'National Monument',
+		name: 'Washington Monument',
 		address: '2 15th St NW Washington, DC 20007',
 		latitude: '38.8895',
 		longitude: '-77.0352'
@@ -49,18 +53,19 @@ var Place = function(data) {
 		this.bouncePlaceMarker();
 		this.getNewYorkTimesData();
 		this.getWikipediaData();
+		this.marker.map.setCenter(this.marker.getPosition());
+		//infowindow.close();
+		infowindow.setContent(this.name());
+		infowindow.open(this.marker.map, this.marker);
 	}
-
-	var $wikiElem = $('#wikipediaArticles');
-    var $nytElem = $('#nytimesArticles');
-    var $nytHeaderElem = $('#nyTimes-header');
 
 	this.getNewYorkTimesData = function() {
 		var nytimesAPIKey = 'e1d4a459b4b1f9239fd618037ddf86df:11:61795967';
 	    var nyTimesURL = 'http://api.nytimes.com/svc/search/v2/articlesearch.json?q=' + this.name() + '&sort=newest&api-key=' + nytimesAPIKey;
 	    $.getJSON(nyTimesURL, function(data) {
 	        var articles = data.response.docs;
-	        for (var i = 0; i < articles.length; i++) {
+	        var maxLength = (articles.length <= 3 ? articles.length : 3);
+	        for (var i = 0; i < maxLength; i++) {
 	            var article = articles[i];
 	            $nytElem.append('<li class="article">' +
 	            '<a href="'+ article.web_url + '">' + article.headline.main +'</a>' +
@@ -84,7 +89,8 @@ var Place = function(data) {
 	        dataType: "jsonp",
 	        success: function( response ) {
 	            var articleList = response[1];
-	            for (var i = 0; i < articleList.length; i++) {
+	            var maxLength = (articleList.length <= 3 ? articleList.length : 3);
+	            for (var i = 0; i < maxLength; i++) {
 	                articleStr = articleList[i];
 	                var url = 'http://en.wikipedia.org/wiki/' + articleStr;
 	                $wikiElem.append('<li><a href="' + url + '">' +
@@ -100,12 +106,19 @@ var Place = function(data) {
 var ViewModel = function() {
 	var self = this;
 	self.places = ko.observableArray([]);
-	var infowindow = null;
+	self.isDataWindowOpen = ko.observable(false);
 
 	// initilize the list of places
 	initialPlaces.forEach(function(placeItem){
 		self.places.push(new Place(placeItem));
 	});
+
+	// open or close the bottom data window
+	self.openDataWindow = function(open) {
+		$wikiElem.empty();
+		$nytElem.empty();
+		self.isDataWindowOpen(open);
+	}
 
 	// map binding
 	ko.bindingHandlers.map = {
@@ -132,10 +145,13 @@ var ViewModel = function() {
 					title: self.places()[placeItem].name()
 				});
 
+				marker.set('placeLocation', self.places()[placeItem]);
+
 				// display the info window when marker is clicked
 				google.maps.event.addListener(marker, 'click', function() {
-					infowindow.setContent(this.title);
-					infowindow.open(self.map, this);
+					var placeLocation = this.get('placeLocation');
+					placeLocation.activateMarker();
+					self.openDataWindow(true);
 				});
 				self.places()[placeItem].marker = marker;
 			}
