@@ -5,11 +5,8 @@ var noMatchFoundMessage = 'No match was found.  Please try a different term';
 var nytFailure = 'I failed to retrieve new york times articles, please try again later';
 var wikipediaFailure = 'I failed to retrieve wikipedia articles, please try again later';
 
-var $searchBoxElem = $('#search-box');
 var $wikiElem = $('#wikipediaArticles');
 var $nytElem = $('#nytimesArticles');
-var $nytHeaderElem = $('#nyTimes-header');
-var $status = $('#status');
 
 var initialPlaces = [
 	{
@@ -25,10 +22,28 @@ var initialPlaces = [
 		longitude: '-77.0366'
 	},
 	{
-		name: 'United States Congress',
+		name: 'United States Capitol',
 		address: '200 D St SW Washington, DC 20024',
 		latitude: '38.8897',
 		longitude: '-77.0089'
+	},
+	{
+		name: 'Smithsonian National Air and Space Museum',
+		address: '600 Independence Ave SW Washington, DC 20560',
+		latitude: '38.88816',
+		longitude: '-77.019868'
+	},
+	{
+		name: 'National Museum of the American Indian',
+		address: '4th St & Independence Ave SW Washington, DC 20560',
+		latitude: '38.888207',
+		longitude: '-77.016522'
+	},
+	{
+		name: 'Smithsonian National Museum of Natural History',
+		address: '10th St. & Constitution Ave. NW Washington, DC 20560',
+		latitude: '38.8910964',
+		longitude: '-77.0249119'
 	}
 ];
 
@@ -41,14 +56,20 @@ var Place = function(data) {
 	this.showListItem = ko.observable(true); // list  item initially visible
 	this.isSelected = ko.observable(false); // true when list item is selected
 
+	this.nytArticles = ko.observableArray([]);
+	this.wikipediaArticles = ko.observableArray([]);
+
+	// update selection status of list items
 	this.changeSelectionStatus = function(isSelected) {
 		this.isSelected(isSelected);
 	}
 
+	// update map place marker visibility
 	this.changePlaceMarkerVisibility = function(isVisible) {
 		this.marker.setVisible(isVisible);
 	}
 
+	// bounce place marker on map when corresponding object is selected
 	this.bouncePlaceMarker = function() {
 		this.marker.setAnimation(google.maps.Animation.BOUNCE);
 		var _this = this;
@@ -57,6 +78,7 @@ var Place = function(data) {
 		}, 1400);
 	}
 
+	// activate selected object by bouncing the marker and retrieving correspoding data from the webservice
 	this.activateMarker = function() {
 		this.isSelected(true);
 		this.bouncePlaceMarker();
@@ -67,35 +89,48 @@ var Place = function(data) {
 		infowindow.open(this.marker.map, this.marker);
 	}
 
+	// retrieve New York Times articles
 	this.getNewYorkTimesData = function() {
 		var nytimesAPIKey = 'e1d4a459b4b1f9239fd618037ddf86df:11:61795967';
 	    var nyTimesURL = 'http://api.nytimes.com/svc/search/v2/articlesearch.json?q=' + this.name() + '&sort=newest&api-key=' + nytimesAPIKey;
-	    $.getJSON(nyTimesURL, function(data) {
-	        var articles = data.response.docs;
-	        var maxLength = (articles.length <= 3 ? articles.length : 3);
-	        for (var i = 0; i < maxLength; i++) {
-	            var article = articles[i];
-	            $nytElem.append('<li class="article">' +
-	            '<a href="'+ article.web_url + '">' + article.headline.main +'</a>' +
-	            '<p>' + article.snippet + '</p>' +
-	            '</li>');
-	        }
-	    }).error(function(e){
-	        $nytHeaderElem.text('New York Times Articles could not be loaded');
+
+	     var nytRequestTimeout = setTimeout(function() {
+	        $nytElem.text("Failed to get New York Times resources");
+	    }, 4000);
+
+	    $.ajax({
+	    	url: nyTimesURL,
+	    	dataType: "json",
+	    	success: function(data) {
+	    		var articles = data.response.docs;
+		        var maxLength = (articles.length <= 3 ? articles.length : 3);
+		        for (var i = 0; i < maxLength; i++) {
+		            var article = articles[i];
+		            $nytElem.append('<li class="article">' +
+		            '<a href="'+ article.web_url + '">' + article.headline.main +'</a>' +
+		            '<p>' + article.snippet + '</p>' +
+		            '</li>');
+		        }
+	    		clearTimeout(nytRequestTimeout);
+	    	},
+	    	error: function() {
+	    		$nytElem.text("Failed to get New York Times resources");
+	    	}
 	    });
 	}
 
+	// retrieve wikipedia articles
 	this.getWikipediaData = function() {
 		var wikiURL = 'http://en.wikipedia.org/w/api.php?action=opensearch&search=' + this.name() +
 	    '&format=json&callback=wikiCallback';
-	    var wikiRequestTimeout = setTimeout(function(){
+	    var wikiRequestTimeout = setTimeout(function() {
 	        $wikiElem.text("Failed to get wikipedia resources");
-	    }, 8000)
+	    }, 4000);
 
 	    $.ajax({
 	        url: wikiURL,
 	        dataType: "jsonp",
-	        success: function( response ) {
+	        success: function(response) {
 	            var articleList = response[1];
 	            var maxLength = (articleList.length <= 3 ? articleList.length : 3);
 	            for (var i = 0; i < maxLength; i++) {
@@ -105,6 +140,9 @@ var Place = function(data) {
 	                    articleStr + '</a></li>');
 	            }
 	            clearTimeout(wikiRequestTimeout);
+	        },
+	        error: function() {
+	        	$wikiElem.text("Failed to get wikipedia resources");
 	        }
 	    });
 	}
@@ -114,6 +152,7 @@ var Place = function(data) {
 var ViewModel = function() {
 	var self = this;
 	self.places = ko.observableArray([]);
+
 	self.isDataWindowOpen = ko.observable(false);
 	self.searchTerm = ko.observable();
 	self.statusMessage = ko.observable();
@@ -122,6 +161,19 @@ var ViewModel = function() {
 	initialPlaces.forEach(function(placeItem){
 		self.places.push(new Place(placeItem));
 	});
+
+	// sort the places array of objects
+	var compare = function(a, b) {
+		if (a.name() < b.name()) {
+			return -1;
+		}
+		if (a.name() > b.name()) {
+			return 1;
+		}
+		return 0;
+	}
+
+	self.places().sort(compare);
 
 	// open or close the bottom data window
 	self.changeDataWindowVisibility = function(isOpen) {
@@ -159,6 +211,7 @@ var ViewModel = function() {
 	    		placeIndex = index;
 	    	}
 	    });
+
 	    switch (possibleMatchesFound) {
 	    	case 0:
 	    		self.changeDataWindowVisibility(true);
