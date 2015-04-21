@@ -1,8 +1,15 @@
 var map;
 var infowindow = null;
+var selectFromListMessage = 'Please select one location';
+var noMatchFoundMessage = 'No match was found.  Please try a different term';
+var nytFailure = 'I failed to retrieve new york times articles, please try again later';
+var wikipediaFailure = 'I failed to retrieve wikipedia articles, please try again later';
+
+var $searchBoxElem = $('#search-box');
 var $wikiElem = $('#wikipediaArticles');
 var $nytElem = $('#nytimesArticles');
 var $nytHeaderElem = $('#nyTimes-header');
+var $status = $('#status');
 
 var initialPlaces = [
 	{
@@ -32,13 +39,14 @@ var Place = function(data) {
 	this.longitude = ko.observable(data.longitude);
 	this.marker = '';
 	this.showListItem = ko.observable(true); // list  item initially visible
+	this.isSelected = ko.observable(false); // true when list item is selected
 
-	this.hidePlaceMarker = function() {
-		this.marker.setVisible(false);
+	this.changeSelectionStatus = function(isSelected) {
+		this.isSelected(isSelected);
 	}
 
-	this.showPlaceMarker = function() {
-		this.marker.setVisible(true);
+	this.changePlaceMarkerVisibility = function(isVisible) {
+		this.marker.setVisible(isVisible);
 	}
 
 	this.bouncePlaceMarker = function() {
@@ -50,11 +58,11 @@ var Place = function(data) {
 	}
 
 	this.activateMarker = function() {
+		this.isSelected(true);
 		this.bouncePlaceMarker();
 		this.getNewYorkTimesData();
 		this.getWikipediaData();
 		this.marker.map.setCenter(this.marker.getPosition());
-		//infowindow.close();
 		infowindow.setContent(this.name());
 		infowindow.open(this.marker.map, this.marker);
 	}
@@ -107,6 +115,8 @@ var ViewModel = function() {
 	var self = this;
 	self.places = ko.observableArray([]);
 	self.isDataWindowOpen = ko.observable(false);
+	self.searchTerm = ko.observable();
+	self.statusMessage = ko.observable();
 
 	// initilize the list of places
 	initialPlaces.forEach(function(placeItem){
@@ -114,10 +124,73 @@ var ViewModel = function() {
 	});
 
 	// open or close the bottom data window
-	self.openDataWindow = function(open) {
+	self.changeDataWindowVisibility = function(isOpen) {
 		$wikiElem.empty();
 		$nytElem.empty();
-		self.isDataWindowOpen(open);
+		self.statusMessage("");
+		self.isDataWindowOpen(isOpen);
+	}
+
+	// remove search result list item selection
+	self.removeSelections = function() {
+		for (var placeItem in self.places()) {
+			self.places()[placeItem].changeSelectionStatus(false);
+		}
+	}
+
+	// update value of the search box when new row is selected
+	self.updateSearchTerm = function() {
+		for (var placeItem in self.places()) {
+			if (self.places()[placeItem].isSelected()) {
+				self.searchTerm(self.places()[placeItem].name());
+			}
+		}
+	}
+
+	// update screen when search button is clicked
+	self.search = function() {
+		var term = self.searchTerm().toLowerCase();
+		var placeIndex = null;
+		var possibleMatchesFound = 0;
+		$.each(self.places(), function(index, placeItem) {
+	    	var value = placeItem.name().toLowerCase();
+	    	if (value.indexOf(term) !== -1) {
+	    		possibleMatchesFound++;
+	    		placeIndex = index;
+	    	}
+	    });
+	    switch (possibleMatchesFound) {
+	    	case 0:
+	    		self.changeDataWindowVisibility(true);
+	    		self.statusMessage(noMatchFoundMessage);
+	    		break;
+	    	case 1:
+	    		self.removeSelections();
+	    		self.places()[placeIndex].activateMarker();
+	    		self.updateSearchTerm();
+				self.changeDataWindowVisibility(true);
+				break;
+			default:
+				self.changeDataWindowVisibility(true);
+				self.statusMessage(selectFromListMessage);
+				break;
+	    }
+	}
+
+	// filter list results
+	self.filterResults = function() {
+	   var term = self.searchTerm().toLowerCase();
+	   infowindow.close();
+	    $.each(self.places(), function(index, placeItem) {
+	    	var value = placeItem.name().toLowerCase();
+	    	if (value.indexOf(term) === -1) {
+	    		placeItem.changePlaceMarkerVisibility(false);
+	    		placeItem.showListItem(false);
+	    	} else {
+	    		placeItem.changePlaceMarkerVisibility(true);
+	    		placeItem.showListItem(true);
+	    	}
+	    });
 	}
 
 	// map binding
@@ -150,8 +223,10 @@ var ViewModel = function() {
 				// display the info window when marker is clicked
 				google.maps.event.addListener(marker, 'click', function() {
 					var placeLocation = this.get('placeLocation');
+					self.removeSelections();
 					placeLocation.activateMarker();
-					self.openDataWindow(true);
+					self.changeDataWindowVisibility(true);
+					self.updateSearchTerm();
 				});
 				self.places()[placeItem].marker = marker;
 			}
@@ -166,24 +241,6 @@ var ViewModel = function() {
 		    });
 	    }
 	};
-
-	// filter list of places when typing in the search box
-	$("#search-term").on("keyup", function() {
-	    var term = $(this).val().toLowerCase();
-	    infowindow.close();
-	    $.each(self.places(), function(index, placeItem) {
-	    	var value = placeItem.name().toLowerCase();
-	    	if (value.indexOf(term) === -1) {
-	    		placeItem.hidePlaceMarker();
-	    		placeItem.showListItem(false);
-	    	} else {
-	    		placeItem.showPlaceMarker();
-	    		placeItem.showListItem(true);
-	    	}
-	    });
-	});
-
-	//$('#search-term').submit(self.getNewYorkTimesData());
 }
 
 var viewModel = new ViewModel();
