@@ -17,6 +17,22 @@ module.exports = function(grunt){
 		        src: ['src/index.html']
 		    }
 		},
+
+		jslint: { // configure the task
+	      // lint your project's client code
+	      client: {
+	        src: [
+	          'src/js/app.js'
+	        ],
+	        directives: {
+	          browser: true,
+	          predef: [
+	            'jQuery'
+	          ]
+	        }
+	      }
+	    },
+
         // Keep JavaScript as lean as possible
 		uglify: {
 		    build: {
@@ -51,7 +67,7 @@ module.exports = function(grunt){
   		// Run automated tasks when files are updated
   		watch: {
 		    html: {
-		        files: ['src/index.html'],
+		        files: ['src/index.html', 'src/js/app.js'],
 		        tasks: ['htmlhint', 'inline']
 		    }
 		}
