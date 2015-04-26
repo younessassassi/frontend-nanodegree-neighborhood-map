@@ -9,7 +9,6 @@
     "grunt-contrib-uglify": "*",
     "grunt-contrib-watch": "^0.6.1",
     "grunt-htmlhint": "*",
-    "grunt-jslint": "*",
     "grunt-inline": "*",
     "matchdep": "*",
     "watch": "*"
