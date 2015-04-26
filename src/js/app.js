@@ -9,43 +9,43 @@ var $wikiElem = $('#wikipediaArticles');
 var $nytElem = $('#nytimesArticles');
 
 var initialPlaces = [
-        {
-            name: 'Washington Monument',
-            address: '2 15th St NW Washington, DC 20007',
-            latitude: '38.8895',
-            longitude: '-77.0352'
-        },
-        {
-            name: 'The White House',
-            address: '1600 Pennsylvania Ave NW Washington, DC 20500',
-            latitude: '38.8977',
-            longitude: '-77.0366'
-        },
-        {
-            name: 'United States Capitol',
-            address: '200 D St SW Washington, DC 20024',
-            latitude: '38.8897',
-            longitude: '-77.0089'
-        },
-        {
-            name: 'Smithsonian National Air and Space Museum',
-            address: '600 Independence Ave SW Washington, DC 20560',
-            latitude: '38.88816',
-            longitude: '-77.019868'
-        },
-        {
-            name: 'National Museum of the American Indian',
-            address: '4th St & Independence Ave SW Washington, DC 20560',
-            latitude: '38.888207',
-            longitude: '-77.016522'
-        },
-        {
-            name: 'Smithsonian National Museum of Natural History',
-            address: '10th St. & Constitution Ave. NW Washington, DC 20560',
-            latitude: '38.8910964',
-            longitude: '-77.0249119'
-        }
-    ];
+  {
+      name: 'Washington Monument',
+      address: '2 15th St NW Washington, DC 20007',
+      latitude: '38.8895',
+      longitude: '-77.0352'
+  },
+  {
+      name: 'The White House',
+      address: '1600 Pennsylvania Ave NW Washington, DC 20500',
+      latitude: '38.8977',
+      longitude: '-77.0366'
+  },
+  {
+      name: 'United States Capitol',
+      address: '200 D St SW Washington, DC 20024',
+      latitude: '38.8897',
+      longitude: '-77.0089'
+  },
+  {
+      name: 'Smithsonian National Air and Space Museum',
+      address: '600 Independence Ave SW Washington, DC 20560',
+      latitude: '38.88816',
+      longitude: '-77.019868'
+  },
+  {
+      name: 'National Museum of the American Indian',
+      address: '4th St & Independence Ave SW Washington, DC 20560',
+      latitude: '38.888207',
+      longitude: '-77.016522'
+  },
+  {
+      name: 'Smithsonian National Museum of Natural History',
+      address: '10th St. & Constitution Ave. NW Washington, DC 20560',
+      latitude: '38.8910964',
+      longitude: '-77.0249119'
+  }
+];
 
 var Place = function (data) {
   this.name = ko.observable(data.name);
@@ -92,31 +92,30 @@ var Place = function (data) {
   // retrieve New York Times articles
   this.getNewYorkTimesData = function () {
     var nytimesAPIKey = 'e1d4a459b4b1f9239fd618037ddf86df:11:61795967';
-      var nyTimesURL = 'http://api.nytimes.com/svc/search/v2/articlesearch.json?q=' + this.name() + '&sort=newest&api-key=' + nytimesAPIKey;
+    var nyTimesURL = 'http://api.nytimes.com/svc/search/v2/articlesearch.json?q=' + this.name() + '&sort=newest&api-key=' + nytimesAPIKey;
+    var nytRequestTimeout = setTimeout(function() {
+     $nytElem.text(noNYTArticles);
+    }, 4000);
 
-       var nytRequestTimeout = setTimeout(function() {
-          $nytElem.text(noNYTArticles);
-      }, 4000);
-
-      $.ajax({
-        url: nyTimesURL,
-        dataType: "json",
-        success: function(data){
-          var articles = data.response.docs;
-            var maxLength = (articles.length <= 3 ? articles.length : 3);
-            for (var i = 0; i < maxLength; i++) {
-                var article = articles[i];
-                $nytElem.append('<li class="article">' +
-                '<a href="'+ article.web_url + '">' + article.headline.main +'</a>' +
-                '<p>' + article.snippet + '</p>' +
-                '</li>');
-            }
-          clearTimeout(nytRequestTimeout);
-        },
-        error: function(){
-          $nytElem.text(noNYTArticles);
-        }
-      });
+    $.ajax({
+      url: nyTimesURL,
+      dataType: "json",
+      success: function(data){
+        var articles = data.response.docs;
+          var maxLength = (articles.length <= 3 ? articles.length : 3);
+          for (var i = 0; i < maxLength; i++) {
+            var article = articles[i];
+            $nytElem.append('<li class="article">' +
+            '<a href="'+ article.web_url + '">' + article.headline.main +'</a>' +
+            '<p>' + article.snippet + '</p>' +
+            '</li>');
+          }
+        clearTimeout(nytRequestTimeout);
+      },
+      error: function(){
+        $nytElem.text(noNYTArticles);
+      }
+    });
   };
 
   // retrieve wikipedia articles
@@ -138,7 +137,7 @@ var Place = function (data) {
                   articleStr = articleList[i];
                   var url = 'http://en.wikipedia.org/wiki/' + articleStr;
                   $wikiElem.append('<li><a href="' + url + '">' +
-                      articleStr + '</a></li>');
+                  articleStr + '</a></li>');
               }
               clearTimeout(wikiRequestTimeout);
           },
@@ -154,6 +153,7 @@ var ViewModel = function() {
   self.places = ko.observableArray([]);
 
   self.isDataWindowOpen = ko.observable(false);
+  self.isListViewOpen = ko.observable(true);
   self.searchTerm = ko.observable();
   self.statusMessage = ko.observable();
 
@@ -175,12 +175,18 @@ var ViewModel = function() {
 
   self.places().sort(compare);
 
+  // hide the data view when list view is shown to improve user experience in a small screen
+  self.showListView = function() {
+    self.changeDataWindowVisibility(false);
+  };
+
   // open or close the bottom data window
   self.changeDataWindowVisibility = function(isOpen) {
     $wikiElem.empty();
     $nytElem.empty();
     self.statusMessage("");
     self.isDataWindowOpen(isOpen);
+    self.isListViewOpen(!isOpen);
   };
 
   // remove search result list item selection
@@ -250,9 +256,9 @@ var ViewModel = function() {
     init: function (element, valueAccessor, allBindingsAccessor, viewModel) {
       var bounds = new google.maps.LatLngBounds();
       var options = {
-            mapTypeId: 'roadmap',
-            disableDefaultUI: true
-    };
+        mapTypeId: 'roadmap',
+        disableDefaultUI: true
+      };
     infowindow = new google.maps.InfoWindow();
 
     // display the map on the page
@@ -289,8 +295,8 @@ var ViewModel = function() {
 
     // override the map zoom level once the fitBounds is run
     var boundsListener = google.maps.event.addListener((self.map), 'bounds_changed', function(event) {
-          this.setZoom(13);
-          google.maps.event.removeListener(boundsListener);
+        this.setZoom(13);
+        google.maps.event.removeListener(boundsListener);
       });
     }
   };
